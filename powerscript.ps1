@@ -136,14 +136,9 @@ else {
             do {
                 write-host `n
                 $folder_name = read-host -prompt "Enter the name of your projects directory "
-                $message  = ""
-                $question = ">> Are you sure you want to name your projects directory: '$folder_name'?`n`n"
-                $choices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
-                $choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&Yes'))
-                $choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&No'))
-                $decision = $Host.UI.PromptForChoice($message, $question, $choices, 1)
+                $question = read-host -prompt "Are you sure you want to name your projects directory: '$folder_name'? [Y/N]`n"
             } 
-            while ($decision -eq 1)
+            while (($question -ne "y") -or (!$question))
             new-item -itemtype directory $folder_name | out-null
             write-host `n
             write-host ">> $folder_name directory created!"
@@ -158,5 +153,28 @@ else {
 
 # Making of individual projects
 if ($work_dir_var) {
-    write-host "WORK_DIR was specified to: $work_dir_var ---- Finally!"
+    do {
+        $create_project = read-host -prompt "Now it's time to create a project.`nDo you want to do this now? [Y/N] (Default: Y)"
+        write-host `n
+    }    
+    while (($create_project -ne "y") -and ($create_project -ne "n") -and !($create_project -eq [string]::empty))
+
+    if ($create_project -eq "n") {
+        write-host "OK! Feel free to use this program to create a project at a later date, or do it yourself manually.`n"
+        read-host -prompt "Press Enter to exit"
+        write-host `n
+        exit
+    }
+    elseif (($create_project -eq "y") -or ($create_project -eq [string]::empty)) {
+        do {
+            $project_name = read-host -prompt "Name of your project"
+            $confirm_project_name = read-host -prompt "Are you sure you want to name your project '$project_name'? [Y/N]"
+            write-host `n
+        }
+        while (($confirm_project_name -ne "y") -or (!$confirm_project_name))
+        get-location
+        read-host -prompt "Create individual project folder here (REMINDER)"
+        exit #temp
+    }
+
 }
