@@ -172,9 +172,13 @@ if ($work_dir_var) {
             write-host `n
         }
         while (($confirm_project_name -ne "y") -or (!$confirm_project_name))
+        new-item -itemtype directory $project_name | out-null
+        write-host `n
+        write-host ">> $project_name directory created!"
+        set-location -path "$project_name" | out-null
+        write-host `n
         get-location
-        read-host -prompt "Create individual project folder here (REMINDER)"
-        exit #temp
+        read-host -prompt "Press enter to exit"
     }
 
 }
