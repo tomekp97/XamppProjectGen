@@ -15,7 +15,7 @@ write-host `n
 read-host -prompt "Press Enter to continue"
 write-host `n
 # Only get drives that actually has content
-$drives = get-WmiObject win32_logicaldisk | where {$_.FreeSpace}
+$drives = get-wmiobject win32_logicaldisk | where {$_.FreeSpace}
 # Used to check if there's more than 1 drive containing /xampp 
 $valid_drive = @()
 $no_of_drives = 0
@@ -177,8 +177,49 @@ if ($work_dir_var) {
         write-host ">> $project_name directory created!"
         set-location -path "$project_name" | out-null
         write-host `n
-        get-location
-        read-host -prompt "Press enter to exit"
+		write-host "Ckecking if Ruby is installed..." -foregroundcolor "yellow"
+		# Temporarily disable red errors if the command "ruby -v"doesn't exist.
+		$ErrorActionPreference= 'silentlycontinue'
+		$ruby = ruuby -v
+		# See if last operationreturns TRUE
+		if ($?) {
+			$ErrorActionPreference= 'continue'
+			write-host `n
+			write-host "Ruby is installed on your machine, continuing process..." -backgroundcolor "green" -foregroundcolor "black"
+		}
+		else {
+			write-host `n
+			write-host "Ruby not installed!" -backgroundcolor "darkred"
+			$message  = ""
+			$question = ">> Do you want the program to download Ruby?`n`n"
+			$choices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
+			$choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&Yes, you da best, download it for me.'))
+			$choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&No, I really want to download it myself!'))
+			$decision = $Host.UI.PromptForChoice($message, $question, $choices, 0)
+			write-host `n
+			# Download or exit based on $decision
+			if ($decision -eq 0) {
+				$OS = get-wmiobject win32_operatingsystem
+				if ($OS.OSArchitecture -eq "64-bit") {
+					write-host "Your system is " -nonewline
+					write-host $OS.OSArchitecture
+				}
+				else {
+					write-host "Your system is 32 bit."
+				}
+				#$url = "http://mirror.internode.on.net/pub/test/10meg.test"
+				#$output = "$PSScriptRoot\10meg.test"
+				#$start_time = Get-Date
+
+				#Invoke-WebRequest -Uri $url -OutFile $output
+				#Write-Output "Time taken: $((Get-Date).Subtract($start_time).Seconds) second(s)"
+
+			}
+			else {
+				write-host "Alright, do it yourself."
+				write-host "Bye!" -foregroundcolor "red"
+			}
+		}
     }
 
 }
