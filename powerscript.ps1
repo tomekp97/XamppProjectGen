@@ -19,6 +19,14 @@ function download($url, $outputTo) {
     $webclient = New-Object System.Net.WebClient
     $webclient.DownloadFile($url,$outputTo)
 }
+# Creates unzipping functionality
+function unzip($file, $destination) {
+    $shell = new-object -com shell.application
+    $zip = $shell.namespace($file)
+    foreach($item in $zip.items()) {
+        $shell.namespace($destination).copyhere($item)
+    }
+}
 # Only get drives that actually has content
 $drives = get-wmiobject win32_logicaldisk | where {$_.FreeSpace}
 # Used to check if there's more than 1 drive containing /xampp 
@@ -195,8 +203,19 @@ if ($work_dir_var) {
 		# See if last operation returns TRUE
 		if ($?) {
 			$ErrorActionPreference= 'continue'
-			write-host `n
-			write-host ">> Ruby is installed on your machine, continuing process..." -backgroundcolor "green" -foregroundcolor "black"
+			write-host ">> Ruby is already installed on your machine!" -backgroundcolor "green" -foregroundcolor "black"
+            # Install SASS via Ruby
+            $sass = sass -v
+            if ($?) {
+                $ErrorActionPreference= 'continue'
+                write-host ">> SASS already installed on your machine!" -backgroundcolor "green" -foregroundcolor "black"
+            }
+            else {
+                write-host ">> Installing SASS..." -foregroundcolor "yellow"
+                $sass = gem install sass
+                write-host ">> SASS successfully installed!" -backgroundcolor "green" -foregroundcolor "black"
+                $sass = sass -v
+            }
 		}
 		else {
             $ErrorActionPreference= 'continue'
@@ -243,7 +262,6 @@ if ($work_dir_var) {
                             start-sleep -s 1
                         }
                     } until (!$process_running)
-                    write-host `n
                     write-host ">> Ruby installation finished" -foregroundcolor "yellow"
                     write-host ">> Checking if Ruby installed correctly..." -foregroundcolor "yellow"
                     # Update this PowerShell session's knowledge of newly acquired Ruby commands
@@ -252,10 +270,19 @@ if ($work_dir_var) {
                     $ErrorActionPreference= 'silentlycontinue'
                     $ruby = ruby -v
                     if ($?) {
-                        # Enable errors again
-                        $ErrorActionPreference= 'continue'
                         write-host ">> Ruby successfully installed!" -backgroundcolor "green" -foregroundcolor "black"
-                        write-host ">> Continuing process..." -foregroundcolor "green"
+                        # Install SASS via Ruby
+                        $sass = sass -v
+                        if ($?) {
+                            $ErrorActionPreference= 'continue'
+                            write-host ">> SASS already installed on your machine!" -backgroundcolor "green" -foregroundcolor "black"
+                        }
+                        else {
+                            write-host ">> Installing SASS..." -foregroundcolor "yellow"
+                            $sass = gem install sass
+                            write-host ">> SASS successfully installed!" -backgroundcolor "green" -foregroundcolor "black"
+                            $sass = sass -v
+                        }
                     }
                     else {
                         # Enable errors again
@@ -265,14 +292,77 @@ if ($work_dir_var) {
                 }
                 else {
                     write-host `n
-                    write-host "OK, fine, install Ruby yourself. After that relaunch the script."
+                    write-host ">> OK, fine, install Ruby yourself. After that relaunch the script."
                     read-host -prompt "Press Enter to exit"
                 }
 			}
 			else {
 				write-host ">> Alright, do it yourself."
 				write-host ">> Bye!" -foregroundcolor "darkred"
+                read-host -prompt "Press Enter to exit"
 			}
 		}
     }
+}
+
+# Continue to WordPress install
+$ErrorActionPreference = "silentlycontinue"
+if (($ruby) -and ($sass)) {
+    $ErrorActionPreference = "continue"
+    write-host `n
+    $message  = ">> It's time to set up WordPress for your project."
+    $question = ">> Do you want the program to download WordPress for you?`n`n"
+    $choices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
+    $choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&Yes, download it please!.'))
+    $choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&No, it would mean a lot to me if I could download the files manually.'))
+    $decision = $Host.UI.PromptForChoice($message, $question, $choices, 0)
+    write-host `n
+    if ($decision -eq 0) {
+        $cd = get-location | select -expandproperty Path
+        write-host ">> Downloading WordPress..."-foregroundcolor "yellow"
+        download -url "https://en-gb.wordpress.org/wordpress-4.8-en_GB.zip" -outputTo "$cd\wordpress.zip"
+        write-host ">> WordPress download complete!" -foregroundcolor "green"
+        write-host ">> Unzipping WordPress..." -foregroundcolor "yellow"
+        # Unzip WordPress
+        unzip -file "$cd\wordpress.zip" -destination "$cd ."
+        move-item "$cd\wordpress\*" "$cd"
+        write-host ">> Unzipping completed!" -foregroundcolor "green"
+        remove-item "$cd\wordpress";remove-item "$cd\wordpress.zip"
+    } 
+    else {
+        write-host n
+        write-host "Fine download it yourself...but make sure to restart the script afterwards,`nunless you want to do the rest of the stuff yourself too!"
+        read-host -prompt "Press Enter to exit"
+    }
+}
+else {
+    $ErrorActionPreference = "continue"
+}
+
+# SASS compilation
+if (test-path "wp-admin") {
+    $theme = "twentyseventeen"
+    set-location "wp-content/themes"
+    do {
+        write-host `n
+        $rename_theme = read-host -prompt "Would you like to rename the WordPress 'twentyseventeen' theme folder? [Y/N]"
+    }
+    while (($rename_theme -eq [string]::empty) -or (($rename_theme -ne "y") -and ($rename_theme -ne "n")))
+    if ($rename_theme -eq "y") {
+        do {
+            write-host `n
+            $newname_theme = read-host -prompt "Enter the new theme name"
+            $decision = read-host -prompt "Are you sure you want to rename the theme to '$newname_theme'? [Y/N]"
+        }
+        while (($decision -eq [string]::empty) -or (($decision -ne "y") -and ($decision -eq "n")))
+        if ($decision -eq "y") {
+            $theme = $newname_theme
+            rename-item "$cd\twentyseventeen" "$newname_theme"
+            write-host `n
+            write-host "Folder 'twentyseventeen' renamed to '$newname_theme'"
+            write-host `n
+        }
+    }
+    set-location "$theme" | out-null
+    get-location
 }
