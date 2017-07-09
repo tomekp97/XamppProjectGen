@@ -191,7 +191,7 @@ if ($work_dir_var) {
 		write-host ">> Checking if Ruby is installed..." -foregroundcolor "yellow"
 		# Temporarily disable red errors if the command "ruby -v"doesn't exist.
 		$ErrorActionPreference= 'silentlycontinue'
-		$ruby = ruuby -v
+		$ruby = ruby -v
 		# See if last operation returns TRUE
 		if ($?) {
 			$ErrorActionPreference= 'continue'
@@ -211,20 +211,20 @@ if ($work_dir_var) {
 			write-host `n
 			# Download or exit based on $decision
 			if ($decision -eq 0) {
+                new-item -itemtype directory -path $home/desktop/xpg-downloads-temp -force | out-null
 				$OS = get-wmiobject win32_operatingsystem
 				if ($OS.OSArchitecture -eq "64-bit") {
 					# 64-bit
                     write-host ">> Downloading Ruby (64-bit)..." -foregroundcolor "yellow"
-                    download -url "https://github.com/oneclick/rubyinstaller2/releases/download/2.4.1-2/rubyinstaller-2.4.1-2-x64.exe" -outputTo "$home\Desktop\PS-Downloads\rubyinstaller-2.4.1-2-x64.exe"
+                    download -url "https://github.com/oneclick/rubyinstaller2/releases/download/2.4.1-2/rubyinstaller-2.4.1-2-x64.exe" -outputTo "$home\Desktop\xpg-downloads-temp\rubyinstaller.exe"
                     write-host ">> Download complete!" -foregroundcolor "green"
 				}
 				else {
 					# 32-bit
                     write-host ">> Downloading Ruby (32-bit)..." -foregroundcolor "yellow"
-                    download -url "https://github.com/oneclick/rubyinstaller2/releases/download/2.4.1-2/rubyinstaller-2.4.1-2-x86.exe" -outputTo "$home\Desktop\PS-Downloads\rubyinstaller-2.4.1-2-x86.exe"
+                    download -url "https://github.com/oneclick/rubyinstaller2/releases/download/2.4.1-2/rubyinstaller-2.4.1-2-x86.exe" -outputTo "$home\Desktop\xpg-downloads-temp\rubyinstaller.exe"
                     write-host ">> Download complete!" -foregroundcolor "green"
 				}
-                # $run_ruby_install = read-host -prompt ">> Do you want to auto-run the Ruby installer? [Y/N]"
                 # Check if user wants to auto run the downloaded Ruby installer
                 do {
                     write-host `n
@@ -233,15 +233,45 @@ if ($work_dir_var) {
                 while (($run_ruby_install -eq [string]::empty))
                 
                 if ($run_ruby_install -eq "y") {
-                    write-host "Auto run will execute"
+                    write-host ">> Running Ruby installation..." -foregroundcolor "yellow"
+                    & "$home\Desktop\xpg-downloads-temp\rubyinstaller.exe"
+                    $process = "rubyinstaller"
+                    # Keep script running until Ruby installaion finishes
+                    do {
+                        $process_running = get-process | ? {$process -contains $_.Name} | select-object -expandproperty Name
+                        if ($process_running)  {
+                            start-sleep -s 1
+                        }
+                    } until (!$process_running)
+                    write-host `n
+                    write-host ">> Ruby installation finished" -foregroundcolor "yellow"
+                    write-host ">> Checking if Ruby installed correctly..." -foregroundcolor "yellow"
+                    # Update this PowerShell session's knowledge of newly acquired Ruby commands
+                    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+                    # Once again disable red errors coming up when "ruby -v" is not detected as aviable commad
+                    $ErrorActionPreference= 'silentlycontinue'
+                    $ruby = ruby -v
+                    if ($?) {
+                        # Enable errors again
+                        $ErrorActionPreference= 'continue'
+                        write-host ">> Ruby successfully installed!" -backgroundcolor "green" -foregroundcolor "black"
+                        write-host ">> Continuing process..." -foregroundcolor "green"
+                    }
+                    else {
+                        # Enable errors again
+                        $ErrorActionPreference= 'continue'
+                        write-host ">> Ruby installation failed!" -backgroundcolor "darkred"
+                    }
                 }
                 else {
-                    write-host "Auto run will NOT execute"
+                    write-host `n
+                    write-host "OK, fine, install Ruby yourself. After that relaunch the script."
+                    read-host -prompt "Press Enter to exit"
                 }
 			}
 			else {
-				write-host "Alright, do it yourself."
-				write-host "Bye!" -foregroundcolor "red"
+				write-host ">> Alright, do it yourself."
+				write-host ">> Bye!" -foregroundcolor "darkred"
 			}
 		}
     }
