@@ -357,12 +357,11 @@ if (test-path "wp-admin") {
         while (($decision -eq [string]::empty) -or (($decision -ne "y") -and ($decision -eq "n")))
         if ($decision -eq "y") {
             $theme = $newname_theme
-            rename-item "$cd\twentyseventeen" "$newname_theme"
+            rename-item "twentyseventeen" "$newname_theme"
             write-host `n
-            write-host "Folder 'twentyseventeen' renamed to '$newname_theme'"
+            write-host ">> Folder 'twentyseventeen' renamed to '$newname_theme'" -foregroundcolor "green"
             write-host `n
         }
     }
     set-location "$theme" | out-null
-    get-location
 }
