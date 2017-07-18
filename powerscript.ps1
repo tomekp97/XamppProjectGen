@@ -262,6 +262,7 @@ if ($work_dir_var) {
                             start-sleep -s 1
                         }
                     } until (!$process_running)
+                    remove-item "$home\desktop\xpg-downloads-temp" -recurse
                     write-host ">> Ruby installation finished" -foregroundcolor "yellow"
                     write-host ">> Checking if Ruby installed correctly..." -foregroundcolor "yellow"
                     # Update this PowerShell session's knowledge of newly acquired Ruby commands
