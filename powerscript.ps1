@@ -359,8 +359,18 @@ if (test-path "wp-admin") {
         if ($decision -eq "y") {
             $theme = $newname_theme
             rename-item "twentyseventeen" "$newname_theme"
+            # Change all instances of 'twentyseventeen' to new theme name
+            $files = get-childitem -path $theme/* | where { ! $_.PSIsContainer }
+            foreach ( $file in $files ) {
+                (get-content $file) | foreach-object {
+                    $themeSmall = $theme.tolower()
+                    $themeUnderscores = $themeSmall.replace(" ","_")
+                    $themeNoSpace = $theme.replace(" ","")
+                    $_ -replace "twentyseventeen", "$themeNoSpace" -replace "Twenty Seventeen", "$themeNoSpace" -replace "Twenty_Seventeen", "$themeUnderscores" 
+                } | set-content $file
+            }
             write-host `n
-            write-host ">> Folder 'twentyseventeen' renamed to '$newname_theme'" -foregroundcolor "green"
+            write-host ">> Theme 'twentyseventeen' renamed to '$newname_theme'" -foregroundcolor "green"
             write-host `n
         }
     }
