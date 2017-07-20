@@ -340,7 +340,7 @@ else {
     $ErrorActionPreference = "continue"
 }
 
-# SASS compilation
+# Re name 'twentyseventeen' theme
 if (test-path "wp-admin") {
     $theme = "twentyseventeen"
     set-location "wp-content/themes"
@@ -375,4 +375,41 @@ if (test-path "wp-admin") {
         }
     }
     set-location "$theme" | out-null
+}
+
+# SASS compilation
+# Check if definitely in the theme directory
+if (test-path "index.php") {
+    write-host `n
+    $message  = ">> SASS compiler setup"
+    $question = ">> Do you want the program to set up SASS compilation?`n`n"
+    $choices = New-Object Collections.ObjectModel.Collection[Management.Automation.Host.ChoiceDescription]
+    $choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&Yes, please! For the love of God, yes please!.'))
+    $choices.Add((New-Object Management.Automation.Host.ChoiceDescription -ArgumentList '&No, if I could set this up myself, it would be like Christmas came early!.'))
+    $decision = $Host.UI.PromptForChoice($message, $question, $choices, 0)
+    write-host `n
+    if ($decision -eq 0) {
+        # SASS is where all _sass-files.scss are stored
+        new-item -itemtype directory SASS | out-null
+        # theme.scss is the file where @import "_sass-files.scss" takes place
+        new-item -itemtype file theme.scss | out-null
+        # theme.css is where all .scss files are compiled to via sass --watch (triggered later)
+        new-item -itemtype file theme.css | out-null
+        # Set up basic .scss file
+        set-location "SASS" | out-null
+        new-item -itemtype file _general.scss | out-null
+        $basicSassOutput = "body {color:#000}"
+        $basicSassOutput | out-file "_general.scss"
+        # Exit the SASS folder into the theme root
+        set-location "../" | out-null
+        $importSass = '@import "SASS/_general.scss"'
+        $importSass | out-file "theme.scss" 
+        # Run sass --watch
+        sass --watch theme.scss:theme.css
+    }
+    else {
+        write-host n
+        write-host "Fine set it up yourself, don't care!"
+        read-host -prompt "Press Enter to exit"
+    }
 }
